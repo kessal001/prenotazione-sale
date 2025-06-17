@@ -1,26 +1,33 @@
-'use client';
-
-import { useRouter } from 'next/navigation';
-
-const sale = ['Sala 1', 'Sala 2', 'Sala 3', 'Sala 4'];
+// pages/index.tsx
+import SalaButton from './components/Salabutton'
 
 export default function Home() {
-  const router = useRouter();
-
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen space-y-4">
-      <h1 className="text-3xl font-bold">Seleziona una Sala Riunioni</h1>
-      <div className="flex space-x-4">
-        {sale.map((sala) => (
-          <button
-            key={sala}
-            onClick={() => router.push(`/sala/${encodeURIComponent(sala)}`)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-800 transition"
-          >
-            {sala}
-          </button>
-        ))}
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 p-4 flex flex-col justify-center">
+      <h1 className="text-4xl font-bold text-white text-center mb-12">Seleziona una Sala</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-6xl mx-auto">
+        <SalaButton 
+          sala="Sala 1" 
+          color="bg-gradient-to-r from-purple-600 to-blue-500" 
+          hoverColor="hover:from-purple-700 hover:to-blue-600"
+        />
+        <SalaButton 
+          sala="Sala 2" 
+          color="bg-gradient-to-r from-pink-500 to-rose-500" 
+          hoverColor="hover:from-pink-600 hover:to-rose-600"
+        />
+        <SalaButton 
+          sala="Sala 3" 
+          color="bg-gradient-to-r from-emerald-500 to-teal-600" 
+          hoverColor="hover:from-emerald-600 hover:to-teal-700"
+        />
+        <SalaButton 
+          sala="Sala 4" 
+          color="bg-gradient-to-r from-amber-500 to-orange-500" 
+          hoverColor="hover:from-amber-600 hover:to-orange-600"
+        />
       </div>
-    </main>
+    </div>
   );
 }
