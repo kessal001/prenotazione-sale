@@ -1,12 +1,27 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import supabase from '../../lib/supabase';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 interface Prenotazione {
   id: string;
@@ -19,12 +34,27 @@ interface Prenotazione {
 
 export default function SalaPage() {
   const { id } = useParams();
+  const router = useRouter();
   const salaId = decodeURIComponent(id as string);
   const [events, setEvents] = useState<any[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [newBooking, setNewBooking] = useState({
+    utente: '',
+    fornitore: '',
+    start: '',
+    end: ''
+  });
+  const [editBooking, setEditBooking] = useState({
+    utente: '',
+    fornitore: '',
+    start: '',
+    end: ''
+  });
 
   useEffect(() => {
     const fetchPrenotazioni = async () => {
@@ -71,13 +101,11 @@ export default function SalaPage() {
         (payload) => {
           console.log('Realtime update:', payload);
           
-          // Handle DELETE events
           if (payload.eventType === 'DELETE') {
             setEvents(prevEvents => prevEvents.filter(event => event.id !== payload.old.id));
             return;
           }
           
-          // Handle INSERT/UPDATE events
           if (payload.new.sala === salaId) {
             if (payload.eventType === 'INSERT') {
               setEvents(prevEvents => [
@@ -123,10 +151,18 @@ export default function SalaPage() {
     };
   }, [salaId]);
 
-  const handleDateSelect = async (selectInfo: any) => {
-    const utente = prompt('Nome utente:');
-    const fornitore = prompt('Nome fornitore:');
-    if (!utente || !fornitore) return;
+  const handleDateSelect = (selectInfo: any) => {
+    setNewBooking({
+      utente: '',
+      fornitore: '',
+      start: selectInfo.startStr,
+      end: selectInfo.endStr
+    });
+    setShowCreateDialog(true);
+  };
+
+  const handleCreateBooking = async () => {
+    if (!newBooking.utente || !newBooking.fornitore) return;
 
     setLoading(true);
     setError(null);
@@ -136,16 +172,18 @@ export default function SalaPage() {
       .insert([
         {
           sala: salaId,
-          data_ora: selectInfo.startStr,
-          data_ora_fine: selectInfo.endStr,
-          utente,
-          fornitore,
+          data_ora: newBooking.start,
+          data_ora_fine: newBooking.end,
+          utente: newBooking.utente,
+          fornitore: newBooking.fornitore,
         },
       ]);
 
     if (insertError) {
       setError('Errore nella creazione della prenotazione');
       console.error('Insert error:', insertError);
+    } else {
+      setShowCreateDialog(false);
     }
     setLoading(false);
   };
@@ -158,6 +196,12 @@ export default function SalaPage() {
         utente: event.extendedProps.utente,
         fornitore: event.extendedProps.fornitore
       });
+      setEditBooking({
+        utente: event.extendedProps.utente,
+        fornitore: event.extendedProps.fornitore,
+        start: event.start,
+        end: event.end || ''
+      });
       setShowModal(true);
     }
   };
@@ -168,7 +212,6 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
-    // Optimistic UI update
     setEvents(prevEvents => prevEvents.filter(event => event.id !== selectedEvent.id));
 
     const { error: deleteError } = await supabase
@@ -179,7 +222,6 @@ export default function SalaPage() {
     if (deleteError) {
       setError('Errore durante l\'eliminazione');
       console.error('Delete error:', deleteError);
-      // Revert optimistic update if there's an error
       setEvents(prevEvents => [...prevEvents, selectedEvent]);
     } else {
       setShowModal(false);
@@ -187,15 +229,13 @@ export default function SalaPage() {
     setLoading(false);
   };
 
+  const handleOpenEditDialog = () => {
+    setShowModal(false);
+    setShowEditDialog(true);
+  };
+
   const handleUpdateEvent = async () => {
     if (!selectedEvent) return;
-
-    const utente = prompt('Nome utente:', selectedEvent.extendedProps.utente);
-    const fornitore = prompt('Nome fornitore:', selectedEvent.extendedProps.fornitore);
-    const dataOra = prompt('Data e Ora Inizio:', selectedEvent.start);
-    const dataOraFine = prompt('Data e Ora Fine:', selectedEvent.end || '');
-
-    if (!utente || !fornitore || !dataOra) return;
 
     setLoading(true);
     setError(null);
@@ -203,10 +243,10 @@ export default function SalaPage() {
     const { error: updateError } = await supabase
       .from('prenotazioni')
       .update({
-        utente,
-        fornitore,
-        data_ora: dataOra,
-        data_ora_fine: dataOraFine || null,
+        utente: editBooking.utente,
+        fornitore: editBooking.fornitore,
+        data_ora: editBooking.start,
+        data_ora_fine: editBooking.end || null,
       })
       .eq('id', selectedEvent.id);
 
@@ -214,87 +254,250 @@ export default function SalaPage() {
       setError('Errore durante l\'aggiornamento');
       console.error('Update error:', updateError);
     } else {
-      setShowModal(false);
+      setShowEditDialog(false);
     }
     setLoading(false);
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Calendario: {salaId}</h1>
+    <div className="p-6 max-w-7xl mx-auto">
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">Calendario: {salaId}          
+            <div className="absolute top-6 right-6">
+            <Button onClick={() => router.push('/')}>
+              Torna alla Home
+              <ArrowLeft className="w-4 h-4 ml-2" />
+            </Button>
+          </div></CardTitle>
 
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+        </CardHeader>
+        
+        <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-      {loading && (
-        <div className="bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded mb-4">
-          Caricamento in corso...
-        </div>
-      )}
-
-      <FullCalendar
-        plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-        initialView="timeGridWeek"
-        selectable={true}
-        select={handleDateSelect}
-        events={events}
-        height="auto"
-        slotMinTime="08:00:00"
-        slotMaxTime="20:00:00"
-        nowIndicator={true}
-        allDaySlot={false}
-        locale="it"
-        timeZone="UTC"
-        eventClick={handleEventClick}
-        headerToolbar={{
-          left: 'prev,next today',
-          center: 'title',
-          right: 'dayGridMonth,timeGridWeek,timeGridDay'
-        }}
-      />
-
-      {showModal && selectedEvent && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex justify-center items-center z-10">
-          <div className="bg-white p-6 rounded-lg shadow-lg max-w-lg w-full">
-            <h2 className="text-xl font-semibold mb-4">Dettagli Prenotazione</h2>
-            <p><strong>Utente:</strong> {selectedEvent.extendedProps.utente}</p>
-            <p><strong>Fornitore:</strong> {selectedEvent.extendedProps.fornitore}</p>
-            <p><strong>Data e Ora Inizio:</strong> {new Date(selectedEvent.start).toLocaleString()}</p>
-            <p><strong>Data e Ora Fine:</strong> {selectedEvent.end ? new Date(selectedEvent.end).toLocaleString() : 'Non specificata'}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                onClick={handleUpdateEvent}
-                disabled={loading}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-blue-300"
-              >
-                {loading ? 'Caricamento...' : 'Modifica Prenotazione'}
-              </button>
-              <button
-                onClick={handleDeleteEvent}
-                disabled={loading}
-                className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-700 disabled:bg-red-300"
-              >
-                {loading ? 'Caricamento...' : 'Elimina Prenotazione'}
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                disabled={loading}
-                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-700 disabled:bg-gray-300"
-              >
-                Chiudi
-              </button>
+          {loading && (
+            <div className="flex items-center gap-2 mb-4">
+              <Loader2 className="animate-spin" />
+              <span>Caricamento in corso...</span>
             </div>
-            {error && (
-              <div className="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                {error}
-              </div>
-            )}
+          )}
+
+          <div className="rounded-lg border p-4">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="timeGridWeek"
+              selectable={true}
+              selectMirror={true}
+              select={handleDateSelect}
+              events={events}
+              height="auto"
+              slotMinTime="08:00:00"
+              slotMaxTime="20:00:00"
+              nowIndicator={true}
+              allDaySlot={false}
+              locale="it"
+              timeZone="UTC"
+              eventClick={handleEventClick}
+              headerToolbar={{
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+              }}
+              eventClassNames="cursor-pointer hover:opacity-90"
+            />
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
+
+      {/* Create Booking Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Crea Nuova Prenotazione</DialogTitle>
+            <DialogDescription>
+              Compila i dettagli per la nuova prenotazione
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="utente" className="text-right">
+                Utente
+              </Label>
+              <Input
+                id="utente"
+                value={newBooking.utente}
+                onChange={(e) => setNewBooking({...newBooking, utente: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="fornitore" className="text-right">
+                Fornitore
+              </Label>
+              <Input
+                id="fornitore"
+                value={newBooking.fornitore}
+                onChange={(e) => setNewBooking({...newBooking, fornitore: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Data/Ora Inizio
+              </Label>
+              <div className="col-span-3">
+                {new Date(newBooking.start).toLocaleString()}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Data/Ora Fine
+              </Label>
+              <div className="col-span-3">
+                {newBooking.end ? new Date(newBooking.end).toLocaleString() : 'Non specificata'}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+              Annulla
+            </Button>
+            <Button onClick={handleCreateBooking} disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : 'Crea Prenotazione'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Details Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dettagli Prenotazione</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Utente
+              </Label>
+              <div className="col-span-3">
+                {selectedEvent?.extendedProps?.utente}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Fornitore
+              </Label>
+              <div className="col-span-3">
+                {selectedEvent?.extendedProps?.fornitore}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Data/Ora Inizio
+              </Label>
+              <div className="col-span-3">
+                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleString() : ''}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
+                Data/Ora Fine
+              </Label>
+              <div className="col-span-3">
+                {selectedEvent?.end ? new Date(selectedEvent.end).toLocaleString() : 'Non specificata'}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setShowModal(false)}>
+              Chiudi
+            </Button>
+            <Button variant="secondary" onClick={handleOpenEditDialog} disabled={loading}>
+              Modifica
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteEvent} disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : 'Elimina'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifica Prenotazione</DialogTitle>
+            <DialogDescription>
+              Modifica i dettagli della prenotazione
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-utente" className="text-right">
+                Utente
+              </Label>
+              <Input
+                id="edit-utente"
+                value={editBooking.utente}
+                onChange={(e) => setEditBooking({...editBooking, utente: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-fornitore" className="text-right">
+                Fornitore
+              </Label>
+              <Input
+                id="edit-fornitore"
+                value={editBooking.fornitore}
+                onChange={(e) => setEditBooking({...editBooking, fornitore: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-start" className="text-right">
+                Data/Ora Inizio
+              </Label>
+              <Input
+                id="edit-start"
+                type="datetime-local"
+                value={editBooking.start ? new Date(editBooking.start).toISOString().slice(0, 16) : ''}
+                onChange={(e) => setEditBooking({...editBooking, start: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-end" className="text-right">
+                Data/Ora Fine
+              </Label>
+              <Input
+                id="edit-end"
+                type="datetime-local"
+                value={editBooking.end ? new Date(editBooking.end).toISOString().slice(0, 16) : ''}
+                onChange={(e) => setEditBooking({...editBooking, end: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => {
+              setShowEditDialog(false);
+              setShowModal(true);
+            }}>
+              Annulla
+            </Button>
+            <Button onClick={handleUpdateEvent} disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" /> : 'Salva Modifiche'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
