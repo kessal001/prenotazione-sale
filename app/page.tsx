@@ -11,7 +11,7 @@ export default function Home() {
           sala="Sala Ovale" 
           color="bg-gradient-to-r from-purple-600 to-blue-500" 
           hoverColor="hover:from-purple-700 hover:to-blue-600"
-          imageUrl='/images/len.jpg'
+          imageUrl='/images/ova.jpg'
         />
                 <SalaButton 
           sala="Sala Rettangolare" 
@@ -23,7 +23,7 @@ export default function Home() {
           sala="Acquario Legno" 
           color="bg-gradient-to-r from-pink-500 to-rose-500" 
           hoverColor="hover:from-pink-600 hover:to-rose-600"
-          imageUrl='/images/ova.jpg'
+          imageUrl='/images/len.jpg'
         />
         <SalaButton 
           sala="Acquario Vetro" 
