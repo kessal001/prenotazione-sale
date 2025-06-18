@@ -160,8 +160,10 @@ export default function SalaPage() {
   const formatDateTimeForInput = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Converti la data in formato locale ma senza l'offset del fuso orario
-    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    // Converti in formato locale senza offset
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 16);
   };
 
   const handleDateSelect = (selectInfo: any) => {
@@ -181,21 +183,13 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
-    // Converti le date in UTC mantenendo lo stesso orario visualizzato
-    const startDate = new Date(newBooking.start);
-    const endDate = new Date(newBooking.end);
-    
-    // Aggiungi l'offset del fuso orario per mantenere lo stesso orario
-    const startUTC = new Date(startDate.getTime() + startDate.getTimezoneOffset() * 60000).toISOString();
-    const endUTC = new Date(endDate.getTime() + endDate.getTimezoneOffset() * 60000).toISOString();
-
     const { error: insertError } = await supabase
       .from('prenotazioni')
       .insert([
         {
           sala: salaId,
-          data_ora: startUTC,
-          data_ora_fine: endUTC,
+          data_ora: newBooking.start,
+          data_ora_fine: newBooking.end,
           utente: newBooking.utente,
           fornitore: newBooking.fornitore,
           numero_persone: newBooking.numero_persone
@@ -265,22 +259,14 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
-    // Converti le date in UTC mantenendo lo stesso orario visualizzato
-    const startDate = new Date(editBooking.start);
-    const endDate = new Date(editBooking.end);
-    
-    // Aggiungi l'offset del fuso orario per mantenere lo stesso orario
-    const startUTC = new Date(startDate.getTime() + startDate.getTimezoneOffset() * 60000).toISOString();
-    const endUTC = new Date(endDate.getTime() + endDate.getTimezoneOffset() * 60000).toISOString();
-
     const { error: updateError } = await supabase
       .from('prenotazioni')
       .update({
         utente: editBooking.utente,
         fornitore: editBooking.fornitore,
         numero_persone: editBooking.numero_persone,
-        data_ora: startUTC,
-        data_ora_fine: endUTC || null,
+        data_ora: editBooking.start,
+        data_ora_fine: editBooking.end || null,
       })
       .eq('id', selectedEvent.id);
 
@@ -464,7 +450,7 @@ export default function SalaPage() {
                 Data/Ora Inizio
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.start ? new Date(new Date(selectedEvent.start).getTime() + new Date(selectedEvent.start).getTimezoneOffset() * 60000).toLocaleString('it-IT') : ''}
+                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleString('it-IT') : ''}
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -472,7 +458,7 @@ export default function SalaPage() {
                 Data/Ora Fine
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.end ? new Date(new Date(selectedEvent.end).getTime() + new Date(selectedEvent.end).getTimezoneOffset() * 60000).toLocaleString('it-IT') : 'Non specificata'}
+                {selectedEvent?.end ? new Date(selectedEvent.end).toLocaleString('it-IT') : 'Non specificata'}
               </div>
             </div>
           </div>
