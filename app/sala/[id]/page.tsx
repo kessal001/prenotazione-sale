@@ -160,7 +160,8 @@ export default function SalaPage() {
   const formatDateTimeForInput = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toISOString().slice(0, 16);
+    // Converti la data in formato locale ma senza l'offset del fuso orario
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   };
 
   const handleDateSelect = (selectInfo: any) => {
@@ -180,12 +181,13 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
-    // Converti le date in UTC
+    // Converti le date in UTC mantenendo lo stesso orario visualizzato
     const startDate = new Date(newBooking.start);
     const endDate = new Date(newBooking.end);
     
-    const startUTC = startDate.toISOString();
-    const endUTC = endDate.toISOString();
+    // Aggiungi l'offset del fuso orario per mantenere lo stesso orario
+    const startUTC = new Date(startDate.getTime() + startDate.getTimezoneOffset() * 60000).toISOString();
+    const endUTC = new Date(endDate.getTime() + endDate.getTimezoneOffset() * 60000).toISOString();
 
     const { error: insertError } = await supabase
       .from('prenotazioni')
@@ -263,12 +265,13 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
-    // Converti le date in UTC
+    // Converti le date in UTC mantenendo lo stesso orario visualizzato
     const startDate = new Date(editBooking.start);
     const endDate = new Date(editBooking.end);
     
-    const startUTC = startDate.toISOString();
-    const endUTC = endDate.toISOString();
+    // Aggiungi l'offset del fuso orario per mantenere lo stesso orario
+    const startUTC = new Date(startDate.getTime() + startDate.getTimezoneOffset() * 60000).toISOString();
+    const endUTC = new Date(endDate.getTime() + endDate.getTimezoneOffset() * 60000).toISOString();
 
     const { error: updateError } = await supabase
       .from('prenotazioni')
@@ -461,7 +464,7 @@ export default function SalaPage() {
                 Data/Ora Inizio
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleString('it-IT') : ''}
+                {selectedEvent?.start ? new Date(new Date(selectedEvent.start).getTime() + new Date(selectedEvent.start).getTimezoneOffset() * 60000).toLocaleString('it-IT') : ''}
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -469,7 +472,7 @@ export default function SalaPage() {
                 Data/Ora Fine
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.end ? new Date(selectedEvent.end).toLocaleString('it-IT') : 'Non specificata'}
+                {selectedEvent?.end ? new Date(new Date(selectedEvent.end).getTime() + new Date(selectedEvent.end).getTimezoneOffset() * 60000).toLocaleString('it-IT') : 'Non specificata'}
               </div>
             </div>
           </div>
