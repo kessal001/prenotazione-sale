@@ -11,22 +11,27 @@ export default function Home() {
           sala="Sala Ovale" 
           color="bg-gradient-to-r from-purple-600 to-blue-500" 
           hoverColor="hover:from-purple-700 hover:to-blue-600"
+          imageUrl='/images/len.jpg'
+        />
+                <SalaButton 
+          sala="Sala Rettangolare" 
+          color="bg-gradient-to-r from-amber-500 to-orange-500" 
+          hoverColor="hover:from-amber-600 hover:to-orange-600"
+          imageUrl='/images/rett.jpg'
         />
         <SalaButton 
           sala="Acquario Legno" 
           color="bg-gradient-to-r from-pink-500 to-rose-500" 
           hoverColor="hover:from-pink-600 hover:to-rose-600"
+          imageUrl='/images/ova.jpg'
         />
         <SalaButton 
           sala="Acquario Vetro" 
           color="bg-gradient-to-r from-emerald-500 to-teal-600" 
           hoverColor="hover:from-emerald-600 hover:to-teal-700"
+          imageUrl='/images/vet.jpg'
         />
-        <SalaButton 
-          sala="Sala Rettangolare" 
-          color="bg-gradient-to-r from-amber-500 to-orange-500" 
-          hoverColor="hover:from-amber-600 hover:to-orange-600"
-        />
+
       </div>
     </div>
   );

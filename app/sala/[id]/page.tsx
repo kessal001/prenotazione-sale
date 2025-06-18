@@ -30,6 +30,7 @@ interface Prenotazione {
   data_ora_fine?: string;
   utente: string;
   fornitore: string;
+  numero_persone: number;
 }
 
 export default function SalaPage() {
@@ -46,12 +47,14 @@ export default function SalaPage() {
   const [newBooking, setNewBooking] = useState({
     utente: '',
     fornitore: '',
+    numero_persone: 1,
     start: '',
     end: ''
   });
   const [editBooking, setEditBooking] = useState({
     utente: '',
     fornitore: '',
+    numero_persone: 1,
     start: '',
     end: ''
   });
@@ -73,14 +76,15 @@ export default function SalaPage() {
       } else if (data) {
         const calendarEvents = data.map((p) => ({
           id: p.id,
-          title: `${p.utente} - ${p.fornitore}`,
+          title: `${p.utente} - ${p.fornitore} (${p.numero_persone} pers.)`,
           start: p.data_ora,
           end: p.data_ora_fine || undefined,
           allDay: false,
           extendedProps: {
             utente: p.utente,
             fornitore: p.fornitore,
-            sala: p.sala
+            sala: p.sala,
+            numero_persone: p.numero_persone
           }
         }));
         setEvents(calendarEvents);
@@ -112,14 +116,15 @@ export default function SalaPage() {
                 ...prevEvents,
                 {
                   id: payload.new.id,
-                  title: `${payload.new.utente} - ${payload.new.fornitore}`,
+                  title: `${payload.new.utente} - ${payload.new.fornitore} (${payload.new.numero_persone} pers.)`,
                   start: payload.new.data_ora,
                   end: payload.new.data_ora_fine || undefined,
                   allDay: false,
                   extendedProps: {
                     utente: payload.new.utente,
                     fornitore: payload.new.fornitore,
-                    sala: payload.new.sala
+                    sala: payload.new.sala,
+                    numero_persone: payload.new.numero_persone
                   }
                 }
               ]);
@@ -129,13 +134,14 @@ export default function SalaPage() {
                   event.id === payload.new.id
                     ? { 
                         ...event,
-                        title: `${payload.new.utente} - ${payload.new.fornitore}`,
+                        title: `${payload.new.utente} - ${payload.new.fornitore} (${payload.new.numero_persone} pers.)`,
                         start: payload.new.data_ora,
                         end: payload.new.data_ora_fine || undefined,
                         extendedProps: {
                           utente: payload.new.utente,
                           fornitore: payload.new.fornitore,
-                          sala: payload.new.sala
+                          sala: payload.new.sala,
+                          numero_persone: payload.new.numero_persone
                         }
                       }
                     : event
@@ -151,10 +157,17 @@ export default function SalaPage() {
     };
   }, [salaId]);
 
+  const formatDateTimeForInput = (dateString: string) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toISOString().slice(0, 16);
+  };
+
   const handleDateSelect = (selectInfo: any) => {
     setNewBooking({
       utente: '',
       fornitore: '',
+      numero_persone: 1,
       start: selectInfo.startStr,
       end: selectInfo.endStr
     });
@@ -162,20 +175,28 @@ export default function SalaPage() {
   };
 
   const handleCreateBooking = async () => {
-    if (!newBooking.utente || !newBooking.fornitore) return;
+    if (!newBooking.utente || !newBooking.fornitore || !newBooking.numero_persone) return;
 
     setLoading(true);
     setError(null);
+
+    // Converti le date in UTC
+    const startDate = new Date(newBooking.start);
+    const endDate = new Date(newBooking.end);
+    
+    const startUTC = startDate.toISOString();
+    const endUTC = endDate.toISOString();
 
     const { error: insertError } = await supabase
       .from('prenotazioni')
       .insert([
         {
           sala: salaId,
-          data_ora: newBooking.start,
-          data_ora_fine: newBooking.end,
+          data_ora: startUTC,
+          data_ora_fine: endUTC,
           utente: newBooking.utente,
           fornitore: newBooking.fornitore,
+          numero_persone: newBooking.numero_persone
         },
       ]);
 
@@ -194,11 +215,13 @@ export default function SalaPage() {
       setSelectedEvent({
         ...event,
         utente: event.extendedProps.utente,
-        fornitore: event.extendedProps.fornitore
+        fornitore: event.extendedProps.fornitore,
+        numero_persone: event.extendedProps.numero_persone
       });
       setEditBooking({
         utente: event.extendedProps.utente,
         fornitore: event.extendedProps.fornitore,
+        numero_persone: event.extendedProps.numero_persone,
         start: event.start,
         end: event.end || ''
       });
@@ -240,13 +263,21 @@ export default function SalaPage() {
     setLoading(true);
     setError(null);
 
+    // Converti le date in UTC
+    const startDate = new Date(editBooking.start);
+    const endDate = new Date(editBooking.end);
+    
+    const startUTC = startDate.toISOString();
+    const endUTC = endDate.toISOString();
+
     const { error: updateError } = await supabase
       .from('prenotazioni')
       .update({
         utente: editBooking.utente,
         fornitore: editBooking.fornitore,
-        data_ora: editBooking.start,
-        data_ora_fine: editBooking.end || null,
+        numero_persone: editBooking.numero_persone,
+        data_ora: startUTC,
+        data_ora_fine: endUTC || null,
       })
       .eq('id', selectedEvent.id);
 
@@ -259,7 +290,6 @@ export default function SalaPage() {
     setLoading(false);
   };
 
-  
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <Card className="mb-6">
@@ -271,7 +301,6 @@ export default function SalaPage() {
               <ArrowLeft className="w-4 h-4 ml-2" />
             </Button>
           </div></CardTitle>
-
         </CardHeader>
         
         <CardContent>
@@ -302,7 +331,7 @@ export default function SalaPage() {
               nowIndicator={true}
               allDaySlot={false}
               locale="it"
-              timeZone="UTC"
+              timeZone="local"
               eventClick={handleEventClick}
               headerToolbar={{
                 left: 'prev,next today',
@@ -327,7 +356,7 @@ export default function SalaPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="utente" className="text-right">
-                Utente
+                Nome
               </Label>
               <Input
                 id="utente"
@@ -348,20 +377,41 @@ export default function SalaPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
-                Data/Ora Inizio
+              <Label htmlFor="numero_persone" className="text-right">
+                Numero di persone
               </Label>
-              <div className="col-span-3">
-                {new Date(newBooking.start).toLocaleString()}
-              </div>
+              <Input
+                id="numero_persone"
+                type="number"
+                min="1"
+                value={newBooking.numero_persone}
+                onChange={(e) => setNewBooking({...newBooking, numero_persone: parseInt(e.target.value) || 1})}
+                className="col-span-3"
+              />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">
+              <Label htmlFor="start" className="text-right">
+                Data/Ora Inizio
+              </Label>
+              <Input
+                id="start"
+                type="datetime-local"
+                value={formatDateTimeForInput(newBooking.start)}
+                onChange={(e) => setNewBooking({...newBooking, start: e.target.value})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="end" className="text-right">
                 Data/Ora Fine
               </Label>
-              <div className="col-span-3">
-                {newBooking.end ? new Date(newBooking.end).toLocaleString() : 'Non specificata'}
-              </div>
+              <Input
+                id="end"
+                type="datetime-local"
+                value={formatDateTimeForInput(newBooking.end)}
+                onChange={(e) => setNewBooking({...newBooking, end: e.target.value})}
+                className="col-span-3"
+              />
             </div>
           </div>
           <DialogFooter>
@@ -384,7 +434,7 @@ export default function SalaPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
-                Utente
+                Nome
               </Label>
               <div className="col-span-3">
                 {selectedEvent?.extendedProps?.utente}
@@ -400,10 +450,18 @@ export default function SalaPage() {
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label className="text-right">
+                Numero di persone
+              </Label>
+              <div className="col-span-3">
+                {selectedEvent?.extendedProps?.numero_persone}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">
                 Data/Ora Inizio
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleString() : ''}
+                {selectedEvent?.start ? new Date(selectedEvent.start).toLocaleString('it-IT') : ''}
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
@@ -411,7 +469,7 @@ export default function SalaPage() {
                 Data/Ora Fine
               </Label>
               <div className="col-span-3">
-                {selectedEvent?.end ? new Date(selectedEvent.end).toLocaleString() : 'Non specificata'}
+                {selectedEvent?.end ? new Date(selectedEvent.end).toLocaleString('it-IT') : 'Non specificata'}
               </div>
             </div>
           </div>
@@ -441,7 +499,7 @@ export default function SalaPage() {
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-utente" className="text-right">
-                Utente
+                Nome
               </Label>
               <Input
                 id="edit-utente"
@@ -462,13 +520,26 @@ export default function SalaPage() {
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-numero_persone" className="text-right">
+                Numero di persone
+              </Label>
+              <Input
+                id="edit-numero_persone"
+                type="number"
+                min="1"
+                value={editBooking.numero_persone}
+                onChange={(e) => setEditBooking({...editBooking, numero_persone: parseInt(e.target.value) || 1})}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="edit-start" className="text-right">
                 Data/Ora Inizio
               </Label>
               <Input
                 id="edit-start"
                 type="datetime-local"
-                value={editBooking.start ? new Date(editBooking.start).toISOString().slice(0, 16) : ''}
+                value={formatDateTimeForInput(editBooking.start)}
                 onChange={(e) => setEditBooking({...editBooking, start: e.target.value})}
                 className="col-span-3"
               />
@@ -480,7 +551,7 @@ export default function SalaPage() {
               <Input
                 id="edit-end"
                 type="datetime-local"
-                value={editBooking.end ? new Date(editBooking.end).toISOString().slice(0, 16) : ''}
+                value={formatDateTimeForInput(editBooking.end)}
                 onChange={(e) => setEditBooking({...editBooking, end: e.target.value})}
                 className="col-span-3"
               />
