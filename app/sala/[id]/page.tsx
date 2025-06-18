@@ -160,7 +160,6 @@ export default function SalaPage() {
   const formatDateTimeForInput = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Converti in formato locale senza offset
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
       .toISOString()
       .slice(0, 16);
@@ -280,16 +279,22 @@ export default function SalaPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Calendario: {salaId}          
-            <div className="absolute top-6 right-6">
-            <Button onClick={() => router.push('/')}>
-              Torna alla Home
-              <ArrowLeft className="w-4 h-4 ml-2" />
+    <div className="p-4 md:p-6 w-full max-w-[99vw] mx-auto">
+      <Card className="mb-6 w-full">
+        <CardHeader className="relative">
+          <CardTitle className="text-xl md:text-2xl font-bold">
+            Calendario: {salaId}
+          </CardTitle>
+          <div className="absolute top-4 right-4 md:top-6 md:right-6">
+            <Button 
+              onClick={() => router.push('/')}
+              size="sm"
+              className="flex items-center gap-1"
+            >
+              <span className="hidden md:inline">Torna alla Home</span>
+              <ArrowLeft className="w-4 h-4" />
             </Button>
-          </div></CardTitle>
+          </div>
         </CardHeader>
         
         <CardContent>
@@ -306,7 +311,7 @@ export default function SalaPage() {
             </div>
           )}
 
-          <div className="rounded-lg border p-4">
+          <div className="rounded-lg border p-2 md:p-4 overflow-x-auto">
             <FullCalendar
               plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
               initialView="timeGridWeek"
@@ -328,6 +333,17 @@ export default function SalaPage() {
                 right: 'dayGridMonth,timeGridWeek,timeGridDay'
               }}
               eventClassNames="cursor-pointer hover:opacity-90"
+              aspectRatio={1.8}
+              contentHeight="auto"
+              dayMaxEventRows={3}
+              views={{
+                timeGridWeek: {
+                  dayHeaderFormat: { weekday: 'short', day: 'numeric' }
+                },
+                dayGridMonth: {
+                  dayHeaderFormat: { weekday: 'short' }
+                }
+              }}
             />
           </div>
         </CardContent>
@@ -335,7 +351,7 @@ export default function SalaPage() {
 
       {/* Create Booking Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Crea Nuova Prenotazione</DialogTitle>
             <DialogDescription>
@@ -403,12 +419,22 @@ export default function SalaPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowCreateDialog(false)}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
               Annulla
             </Button>
-            <Button onClick={handleCreateBooking} disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : 'Crea Prenotazione'}
+            <Button 
+              onClick={handleCreateBooking} 
+              disabled={loading}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
+              {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Crea Prenotazione'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -416,7 +442,7 @@ export default function SalaPage() {
 
       {/* Event Details Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Dettagli Prenotazione</DialogTitle>
           </DialogHeader>
@@ -462,15 +488,34 @@ export default function SalaPage() {
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setShowModal(false)}>
+          <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                variant="secondary" 
+                onClick={handleOpenEditDialog} 
+                disabled={loading}
+                className="flex-1 sm:flex-none"
+                size="sm"
+              >
+                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Modifica'}
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteEvent} 
+                disabled={loading}
+                className="flex-1 sm:flex-none"
+                size="sm"
+              >
+                {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Elimina'}
+              </Button>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowModal(false)}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
               Chiudi
-            </Button>
-            <Button variant="secondary" onClick={handleOpenEditDialog} disabled={loading}>
-              Modifica
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteEvent} disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : 'Elimina'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -478,7 +523,7 @@ export default function SalaPage() {
 
       {/* Edit Booking Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Modifica Prenotazione</DialogTitle>
             <DialogDescription>
@@ -546,15 +591,25 @@ export default function SalaPage() {
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setShowEditDialog(false);
-              setShowModal(true);
-            }}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowEditDialog(false);
+                setShowModal(true);
+              }}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
               Annulla
             </Button>
-            <Button onClick={handleUpdateEvent} disabled={loading}>
-              {loading ? <Loader2 className="animate-spin" /> : 'Salva Modifiche'}
+            <Button 
+              onClick={handleUpdateEvent} 
+              disabled={loading}
+              className="w-full sm:w-auto"
+              size="sm"
+            >
+              {loading ? <Loader2 className="animate-spin h-4 w-4" /> : 'Salva Modifiche'}
             </Button>
           </DialogFooter>
         </DialogContent>
