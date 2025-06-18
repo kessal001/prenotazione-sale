@@ -331,7 +331,7 @@ export default function SalaPage() {
               nowIndicator={true}
               allDaySlot={false}
               locale="it"
-              timeZone="local"
+              timeZone="europe/rome"
               eventClick={handleEventClick}
               headerToolbar={{
                 left: 'prev,next today',
